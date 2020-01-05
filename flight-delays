@@ -1,0 +1,94 @@
+pragma solidity ^0.6.1;
+
+import "./OraclizeAPI.sol";
+
+contract Flight_delays is usingOraclize {
+   
+   bytes32 customerName;
+   bytes32 flightID;
+   uint256 flightPrice;
+   address payable customerAddress;
+   uint256 exposure;
+   
+   constructor (address payable ca, bytes32 cn, bytes32 fID, uint256 dt, uint256 at) public {
+       customerAddress = ca;
+       customerName = cn;
+       flightID = fID;
+       departureTime = dt;
+       arrivalTime = at;
+   }
+   
+   event NewInsurance (
+       uint256 insuranceID,
+       bytes32 flightID,
+       uint256 premium,
+       uint256 indemnity,
+       uint256 departureTime,
+       uint256 arrivalTime,
+       uint256 limitArrivalTime,
+       bytes32 status,
+       address payable customerAddress
+   );
+   
+   enum status {
+       Open, Compensated, NotCompensated
+   }
+   
+   function calculatePremium () private {
+       premium = flightPrice * 0.03;
+   }
+   
+   function calculateIndemnity () private {
+       indemnity == flightPrice;
+   }
+   
+   function addNewInsurance (
+       uint256 insuranceID,
+       bytes32 flightID,
+       uint256 premium,
+       uint256 indemnity,
+       bytes32 status,
+       uint256 departureTime,
+       uint256 arrivalTime,
+       uint256 limitArrivalTime,
+       address payable customerAddress) external{
+       
+       Insurance memory newInsurance;
+       newInsurance.insuranceID = insuranceID;
+       newInsurance.premium = premium;
+       newInsurance.indemnity = indemnity;
+       newInsurance.status = status;
+       newInsurance.limitArrivalTime = limitArrivalTime;
+       newInsurance.customerAddress = customerAddress;
+       
+       emit NewInsurance (insuranceID, flightID, premium, indemnity, status, departureTime, arrivalTime, limitArrivalTime, customerAddress);
+   }
+   
+   function defineStartingStatus () private {
+       NewInsurance.status = NewInsurance.status.Open;
+   }
+   
+   function clientPayment () payable public {
+       premium[msg.sender] += exposure;
+       exposure.transfer(premium);
+   }
+   
+   function clientReimbursement () payable private {
+       if (status == Open){
+           if (oraclize_getActualArrivalTime("URL") < limitArrivalTime){
+               return "No compensation is needed";
+               newStatus = NotCompensated;
+           }
+            else (oraclize_getActualArrivalTime("URL") > limitArrivalTime){
+                assert (exposure >= indemnity);
+                customerAddress.transfer(indemnity);
+                exposure =- indemnity;
+                newStatus = Compensated;
+            }  
+        else {
+            return "Insurance contract is not open"
+        }
+       }
+       
+   }
+}
